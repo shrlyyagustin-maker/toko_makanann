@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +5,7 @@ import 'models/barang.dart';
 import 'models/transaksi.dart';
 import 'models/user.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 // Global list produk tersedia
 List<Map<String, dynamic>> produkTersediaGlobal = [
@@ -50,10 +49,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Toko Bahan Makanan',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
+          seedColor: const Color(0xFF1E3A8A),
           brightness: Brightness.light,
         ),
         cardTheme: CardThemeData(
@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -186,6 +186,39 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
     );
   }
 
+  void _hapusStokProduk(String nama, int kurangStok) {
+    var produk = _produkTersedia.firstWhere((p) => p['nama'] == nama);
+    if (produk['stok'] >= kurangStok) {
+      produk['stok'] -= kurangStok;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok $nama dikurangi $kurangStok'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok tidak cukup! Stok tersedia: ${produk['stok']}'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  void _hapusProduk(String nama) {
+    produkTersediaGlobal.removeWhere((p) => p['nama'] == nama);
+    _qtyControllers.remove(nama);
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Produk $nama berhasil dihapus'),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
   Future<void> _pickProductImage() async {
     try {
       final picked = await _imagePicker.pickImage(
@@ -243,7 +276,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Produk baru berhasil ditambahkan'),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF1E3A8A),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             margin: const EdgeInsets.all(16),
@@ -297,7 +330,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.payment, color: Color(0xFF4CAF50)),
+            const Icon(Icons.payment, color: Color(0xFF1E3A8A)),
             const SizedBox(width: 8),
             const Text('Konfirmasi Checkout'),
           ],
@@ -346,7 +379,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                             'Rp${item.total.toStringAsFixed(0)}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF4CAF50),
+                              color: Color(0xFF1E3A8A),
                             ),
                           ),
                         ],
@@ -368,7 +401,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4CAF50),
+                      color: Color(0xFF1E3A8A),
                     ),
                   ),
                 ],
@@ -386,6 +419,9 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
           ),
           ElevatedButton(
             onPressed: () {
+              // Generate struk
+              String struk = _generateStruk();
+              
               // Simpan ke history
               _historyTransaksi.add({
                 'tanggal': DateTime.now().toString(),
@@ -397,12 +433,95 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                   'total': b.total,
                 })),
                 'total': _transaksi.totalBelanja,
-                'struk': _generateStruk(),
+                'struk': struk,
               });
 
               setState(() {
                 _transaksi.checkout();
               });
+              Navigator.of(context).pop();
+              
+              // Tampilkan struk setelah pembayaran berhasil
+              _showStrukAfterPayment(struk);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Konfirmasi Pembayaran'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStrukAfterPayment(String struk) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.receipt_long, color: Color(0xFF1E3A8A)),
+            const SizedBox(width: 8),
+            const Text('Struk Pembayaran'),
+          ],
+        ),
+        content: Container(
+          width: double.maxFinite,
+          constraints: const BoxConstraints(maxHeight: 400),
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                struk,
+                style: const TextStyle(
+                  fontFamily: 'Courier',
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: struk));
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Checkout berhasil! Struk disalin'),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Salin & Selesai'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -413,19 +532,17 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                       Text('Checkout berhasil!'),
                     ],
                   ),
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF1E3A8A),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   margin: const EdgeInsets.all(16),
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey,
             ),
-            child: const Text('Konfirmasi Pembayaran'),
+            child: const Text('Selesai'),
           ),
         ],
       ),
@@ -439,7 +556,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.history, color: Color(0xFF4CAF50)),
+            const Icon(Icons.history, color: Color(0xFF1E3A8A)),
             const SizedBox(width: 8),
             const Text('History Transaksi'),
           ],
@@ -478,19 +595,19 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                            color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
                             Icons.receipt,
-                            color: Color(0xFF4CAF50),
+                            color: Color(0xFF1E3A8A),
                           ),
                         ),
                         title: Text(
                           'Rp${trans['total'].toStringAsFixed(0)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50),
+                            color: Color(0xFF1E3A8A),
                           ),
                         ),
                         subtitle: Column(
@@ -508,7 +625,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                           ],
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.visibility, color: Color(0xFF4CAF50)),
+                          icon: const Icon(Icons.visibility, color: const Color(0xFF1E3A8A)),
                           onPressed: () => _lihatStrukDetail(trans),
                         ),
                       ),
@@ -536,7 +653,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.receipt_long, color: Color(0xFF4CAF50)),
+            const Icon(Icons.receipt_long, color: Color(0xFF1E3A8A)),
             const SizedBox(width: 8),
             const Text('Detail Struk'),
           ],
@@ -583,7 +700,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                       Text('Struk berhasil disalin'),
                     ],
                   ),
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF1E3A8A),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   margin: const EdgeInsets.all(16),
@@ -593,7 +710,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
             icon: const Icon(Icons.copy),
             label: const Text('Salin'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -611,7 +728,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.inventory, color: Color(0xFF4CAF50)),
+            const Icon(Icons.inventory, color: Color(0xFF1E3A8A)),
             const SizedBox(width: 8),
             Text('Tambah Stok $nama'),
           ],
@@ -629,7 +746,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                 controller: stokController,
                 decoration: InputDecoration(
                   labelText: 'Jumlah Stok',
-                  prefixIcon: const Icon(Icons.add_box, color: Color(0xFF4CAF50)),
+                  prefixIcon: const Icon(Icons.add_box, color: Color(0xFF1E3A8A)),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
@@ -641,18 +758,18 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Color(0xFFE8F1FF),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: Color(0xFF92AEDC)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info, color: Colors.blue, size: 20),
+                  const Icon(Icons.info, color: Color(0xFF1E3A8A), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Stok saat ini: ${_produkTersedia.firstWhere((p) => p['nama'] == nama)['stok']}',
-                      style: const TextStyle(color: Colors.blue, fontSize: 14),
+                      style: const TextStyle(color: Color(0xFF1E3A8A), fontSize: 14),
                     ),
                   ),
                 ],
@@ -693,7 +810,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -704,20 +821,180 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
     );
   }
 
+  void _showHapusStokDialog(String nama) {
+    TextEditingController stokController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline, color: Colors.redAccent),
+            const SizedBox(width: 8),
+            Text('Kurangi Stok $nama'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: TextField(
+                controller: stokController,
+                decoration: InputDecoration(
+                  labelText: 'Jumlah Stok yang Dihapus',
+                  prefixIcon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0E8),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFBFA0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info, color: Colors.redAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Stok saat ini: ${_produkTersedia.firstWhere((p) => p['nama'] == nama)['stok']}',
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey,
+            ),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              int kurang = int.tryParse(stokController.text) ?? 0;
+              if (kurang > 0) {
+                _hapusStokProduk(nama, kurang);
+                Navigator.of(context).pop();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Masukkan jumlah stok yang valid'),
+                      ],
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Kurangi Stok'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHapusProdukDialog(String nama) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning, color: Colors.redAccent),
+            const SizedBox(width: 8),
+            const Text('Hapus Produk'),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus produk "$nama"?',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey,
+            ),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _hapusProduk(nama);
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCurrency(double amount) {
+    return amount.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
   String _generateStruk() {
     StringBuffer struk = StringBuffer();
-    struk.writeln('================================');
-    struk.writeln('         TOKO PIKEK');
-    struk.writeln('================================');
-    struk.writeln('Tanggal: ${DateTime.now().toString()}');
-    struk.writeln('User: ${widget.user.username}');
-    struk.writeln('--------------------------------');
+    DateTime now = DateTime.now();
+    String tanggal = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    String jam = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    struk.writeln('      TOKO MAKANAN');
+    struk.writeln('════════════════════════');
+    struk.writeln('$tanggal $jam | ${widget.user.username}');
+    struk.writeln('────────────────────────');
+    struk.writeln('ITEM          QTY  HARGA');
+    struk.writeln('────────────────────────');
+    
     for (var item in _transaksi.keranjang) {
-      struk.writeln('${item.nama.padRight(20)} ${item.qty.toString().padLeft(3)} x Rp${item.harga.toString().padLeft(8)} = Rp${item.total.toString().padLeft(8)}');
+      String nama = item.nama.length > 12 ? item.nama.substring(0, 12) : item.nama;
+      String hargaFormatted = _formatCurrency(item.total);
+      struk.writeln('${nama.padRight(12)} ${item.qty.toString().padLeft(2)}  Rp${hargaFormatted}');
     }
-    struk.writeln('--------------------------------');
-    struk.writeln('Total: Rp${_transaksi.totalBelanja.toString().padLeft(20)}');
-    struk.writeln('================================');
+    
+    struk.writeln('────────────────────────');
+    String totalFormatted = _formatCurrency(_transaksi.totalBelanja);
+    struk.writeln('TOTAL    Rp${totalFormatted.padLeft(8)}');
+    struk.writeln('════════════════════════');
+    struk.writeln('Terima kasih !');
+    
     return struk.toString();
   }
 
@@ -729,7 +1006,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'Toko Pikek',
+          'Toko Makanan',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -738,6 +1015,18 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
           ),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(user: widget.user),
+                ),
+              );
+            },
+            icon: const Icon(Icons.person, color: Colors.white, size: 28),
+            tooltip: 'Profil',
+          ),
           IconButton(
             onPressed: _lihatHistory,
             icon: const Icon(Icons.history, color: Colors.white, size: 28),
@@ -760,7 +1049,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4CAF50), Color(0xFF81C784), Color(0xFFA5D6A7)],
+            colors: [Color(0xFF0A1F44), Color(0xFF1E3A8A), Color(0xFF3C5A9A)],
           ),
         ),
         child: CustomScrollView(
@@ -795,7 +1084,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withOpacity(0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -805,7 +1094,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Cari produk...',
-                          prefixIcon: const Icon(Icons.search, color: Color(0xFF4CAF50)),
+                          prefixIcon: const Icon(Icons.search, color: Color(0xFF1E3A8A)),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
@@ -858,14 +1147,14 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.add_box, color: Color(0xFF4CAF50), size: 28),
+                          const Icon(Icons.add_box, color: Color(0xFF1E3A8A), size: 28),
                           const SizedBox(width: 8),
                           const Text(
                             'Tambah Produk Baru',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF2E7D32),
+                              color: Color(0xFF1E3A8A),
                             ),
                           ),
                         ],
@@ -884,7 +1173,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                           controller: _namaController,
                           decoration: InputDecoration(
                             labelText: 'Nama Produk',
-                            prefixIcon: const Icon(Icons.shopping_bag, color: Color(0xFF4CAF50)),
+                            prefixIcon: const Icon(Icons.shopping_bag, color: Color(0xFF1E3A8A)),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
@@ -907,7 +1196,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                                 controller: _hargaController,
                                 decoration: InputDecoration(
                                   labelText: 'Harga (Rp)',
-                                  prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF4CAF50)),
+                                  prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF1E3A8A)),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                 ),
@@ -929,7 +1218,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                                 controller: _qtyController,
                                 decoration: InputDecoration(
                                   labelText: 'Stok Awal',
-                                  prefixIcon: const Icon(Icons.inventory, color: Color(0xFF4CAF50)),
+                                  prefixIcon: const Icon(Icons.inventory, color: Color(0xFF1E3A8A)),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                 ),
@@ -1002,7 +1291,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
+                            backgroundColor: const Color(0xFF1E3A8A),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1038,7 +1327,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.shopping_cart, color: Color(0xFF4CAF50), size: 28),
+                        const Icon(Icons.shopping_cart, color: Color(0xFF1E3A8A), size: 28),
                         const SizedBox(width: 8),
                         const Text(
                           'Keranjang Belanja',
@@ -1048,7 +1337,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50),
+                            color: const Color(0xFF1E3A8A),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -1099,7 +1388,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                                             Text(
                                               'Rp${barang.total.toStringAsFixed(0)}',
                                               style: const TextStyle(
-                                                color: Color(0xFF4CAF50),
+                                                color: Color(0xFF1E3A8A),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -1133,7 +1422,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                       margin: const EdgeInsets.only(top: 16),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                        color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -1148,7 +1437,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF4CAF50),
+                              color: Color(0xFF1E3A8A),
                             ),
                           ),
                         ],
@@ -1167,7 +1456,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
           ? FloatingActionButton.extended(
               key: const Key('checkoutButton'),
               onPressed: _checkout,
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               elevation: 8,
               icon: const Icon(Icons.payment),
@@ -1200,7 +1489,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                color: const Color(0xFF1E3A8A).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: produk['imageBytes'] != null
@@ -1212,7 +1501,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                         errorBuilder: (context, error, stackTrace) => const Icon(
                           Icons.inventory_2,
                           size: 30,
-                          color: Color(0xFF4CAF50),
+                          color: Color(0xFF1E3A8A),
                         ),
                       ),
                     )
@@ -1225,14 +1514,14 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                             errorBuilder: (context, error, stackTrace) => const Icon(
                               Icons.inventory_2,
                               size: 30,
-                              color: Color(0xFF4CAF50),
+                              color: Color(0xFF1E3A8A),
                             ),
                           ),
                         )
                       : const Icon(
                           Icons.inventory_2,
                           size: 30,
-                          color: Color(0xFF4CAF50),
+                          color: Color(0xFF1E3A8A),
                         ),
             ),
             const SizedBox(height: 12),
@@ -1253,7 +1542,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
               'Rp${produk['harga']}',
               style: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFF4CAF50),
+                color: Color(0xFF1E3A8A),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1263,14 +1552,14 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
               margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: produk['stok'] > 10 ? Colors.green.shade100 : Colors.orange.shade100,
+                color: produk['stok'] > 10 ? const Color(0xFFE8F1FF) : const Color(0xFF1E3A8A).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'Stok: ${produk['stok']}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: produk['stok'] > 10 ? Colors.green.shade800 : Colors.orange.shade800,
+                  color: produk['stok'] > 10 ? const Color(0xFF1E3A8A) : const Color(0xFF1E3A8A),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1280,21 +1569,61 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
 
             // Action Button
             if (widget.user.role == Role.admin)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _showTambahStokDialog(produk['nama']),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Tambah Stok'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showTambahStokDialog(produk['nama']),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Tambah Stok'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showHapusStokDialog(produk['nama']),
+                          icon: const Icon(Icons.remove, size: 16),
+                          label: const Text('Kurangi'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showHapusProdukDialog(produk['nama']),
+                          icon: const Icon(Icons.delete, size: 16),
+                          label: const Text('Hapus'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               )
             else if (widget.user.role == Role.pembeli)
               Row(
@@ -1326,7 +1655,7 @@ class TokoPageState extends State<TokoPage> with TickerProviderStateMixin {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFF1E3A8A),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: IconButton(

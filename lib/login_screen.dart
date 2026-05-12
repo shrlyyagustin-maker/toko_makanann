@@ -13,6 +13,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _rememberDevice = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4CAF50), Color(0xFF81C784), Color(0xFFA5D6A7)],
+            colors: [Color(0xFF0A1F44), Color(0xFF1E3A8A), Color(0xFF3C5A9A)],
           ),
         ),
         child: SafeArea(
@@ -105,45 +107,62 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Logo/Icon
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 5),
+                          Column(
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E3A8A),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.shopping_basket,
-                              size: 40,
-                              color: Color(0xFF4CAF50),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Title
-                          const Text(
-                            'Toko Bahan Makanan',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2E7D32),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Selamat Datang!',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
+                                child: const Icon(
+                                  Icons.local_restaurant,
+                                  size: 50,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              // Title
+                              const Text(
+                                'TOKO MAKANAN',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E3A8A),
+                                  letterSpacing: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Selamat Datang Kembali!',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '''Demo Login:
+admin: admin/admin123
+pembeli: pembeli/pembeli123''',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 32),
 
@@ -159,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               controller: _usernameController,
                               decoration: InputDecoration(
                                 labelText: 'Username',
-                                prefixIcon: const Icon(Icons.person, color: Color(0xFF4CAF50)),
+                                prefixIcon: const Icon(Icons.person, color: Color(0xFF1E3A8A)),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                               ),
@@ -179,14 +198,50 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               controller: _passwordController,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock, color: Color(0xFF4CAF50)),
+                                prefixIcon: const Icon(Icons.lock, color: Color(0xFF1E3A8A)),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                    color: const Color(0xFF1E3A8A),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                               ),
-                              obscureText: true,
+                              obscureText: _obscurePassword,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
+
+                          // Remember Device Checkbox
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberDevice,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _rememberDevice = value ?? false;
+                                  });
+                                },
+                                activeColor: const Color(0xFF1E3A8A),
+                              ),
+                              const Expanded(
+                                child: Text(
+                                  'Ingat perangkat ini',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
 
                           // Login Button
                           SizedBox(
@@ -196,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               key: const Key('loginButton'),
                               onPressed: _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4CAF50),
+                                backgroundColor: const Color(0xFF1E3A8A),
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -213,6 +268,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           const SizedBox(height: 16),
 
                           // Register Link
+                          const SizedBox(height: 12),
                           TextButton(
                             onPressed: () {
                               Navigator.push(
@@ -221,37 +277,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               );
                             },
                             style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF2E7D32),
+                              foregroundColor: const Color(0xFF1E3A8A),
                             ),
                             child: const Text(
                               'Belum punya akun? Daftar Sekarang',
                               style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ),
-
-                          // Demo Credentials
-                          const SizedBox(height: 24),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue.shade200),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Demo Credentials:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text('Admin: admin / admin123'),
-                                const Text('Pembeli: pembeli / pembeli123'),
-                              ],
                             ),
                           ),
                         ],

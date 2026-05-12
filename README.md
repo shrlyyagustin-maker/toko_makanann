@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-# Toko Pikek - Aplikasi Toko Bahan Makanan
+# Toko Makanan - Aplikasi Toko Bahan Makanan
 
 Aplikasi Flutter untuk simulasi toko bahan makanan dengan fitur role-based (Admin dan Pembeli), manajemen stok, dan history transaksi.
 
