@@ -1,0 +1,25 @@
+2026-05-13 01:07:21.097: [INFO] VisibilityChanged: 0
+2026-05-13 01:07:21.192: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.195: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.197: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.200: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.203: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.206: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.209: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.212: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.215: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.218: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.222: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.226: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.250: [INFO] BookmarkNodeAdded, ABU: 0
+2026-05-13 01:07:21.250: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-05-13 01:07:21.250: [INFO] OnDoneLoading sync enabled: 0
+2026-05-13 01:07:21.262: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.972: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-05-13 01:07:21.980: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-05-13 01:07:21.985: [INFO] Primary account changed.
+2026-05-13 01:07:21.985: [INFO] OnPrimaryAccountChanged PrimaryAccountChangeEvent::Type::kSet
+2026-05-13 01:07:21.994: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-05-13 01:07:22.020: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-05-13 01:07:30.713: [INFO] BookmarkNodeAdded, ABU: 0
+2026-05-13 01:07:36.835: [INFO] Sync initialization duration: 14523ms
